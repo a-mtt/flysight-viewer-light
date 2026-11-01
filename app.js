@@ -75,10 +75,13 @@ const MEASURES = [
   { key: "glide", label: "Glide ratio", scale: "glide", stroke: "#ea580c", digits: 2 },
 ];
 const AXES = [
-  { scale: "m", label: "Altitude (m)", side: 3 },
+  { scale: "m", label: "Altitude (m)", side: 3, color: "#2563eb" },
   { scale: "kmh", label: "Speed (km/h)", side: 1 },
-  { scale: "glide", label: "Glide ratio", side: 1 },
+  { scale: "glide", label: "Glide ratio", side: 1, color: "#ea580c" },
 ];
+// Below this chart width (phones), axes drop their titles and use smaller text.
+const COMPACT_WIDTH = 600;
+let chartCompact = false;
 // Which measures are shown; kept across imports until the page is reloaded.
 const shown = { alt: true, vSpeed: true, hSpeed: true, tSpeed: false, glide: false };
 
@@ -87,6 +90,7 @@ function chartData() {
 }
 
 function drawChart() {
+  chartCompact = chartEl.clientWidth < COMPACT_WIDTH;
   // Only draw the axes that have a visible measure; the first one gets the grid.
   const axes = AXES.filter((a) => MEASURES.some((m) => m.scale === a.scale && shown[m.key]));
   const opts = {
@@ -105,7 +109,10 @@ function drawChart() {
         value: (u, v) => fmt(v, m.digits),
       })),
     ],
-    axes: [{ label: "Time (s)" }, ...axes.map((a, i) => ({ ...a, grid: { show: i === 0 } }))],
+    axes: [
+      chartCompact ? { label: "Time (s)", ...COMPACT_AXIS } : { label: "Time (s)" },
+      ...axes.map((a, i) => (chartCompact ? compactAxis(a, i === 0) : { ...a, grid: { show: i === 0 } })),
+    ],
     hooks: {
       setScale: [(u, key) => { if (key === "x") syncInputs(u); }],
       drawClear: [drawScoringBand],
@@ -113,6 +120,25 @@ function drawChart() {
   };
   chart = new uPlot(opts, chartData(), chartEl);
   addTouchZoom(chart);
+}
+
+const COMPACT_AXIS = { font: "10px system-ui, sans-serif", labelFont: "bold 10px system-ui, sans-serif", gap: 2, ticks: { size: 4 } };
+
+// Phone-sized axis: no title, narrow, tick labels coloured like their measure
+// when the axis has only one, and thousands of metres shortened to "2.5k".
+function compactAxis(a, grid) {
+  const axis = { scale: a.scale, side: a.side, size: 34, grid: { show: grid }, ...COMPACT_AXIS };
+  if (a.color) axis.stroke = a.color;
+  if (a.scale === "m") axis.values = (u, vals) => vals.map((v) => (Math.abs(v) >= 1000 ? `${+(v / 1000).toFixed(1)}k` : v));
+  return axis;
+}
+
+// Rebuilds the chart (e.g. when axes change) and keeps the viewing window.
+function rebuildChart() {
+  const { min, max } = chart.scales.x;
+  chart.destroy();
+  drawChart();
+  chart.setScale("x", { min, max });
 }
 
 // Checkboxes to show or hide each measure.
@@ -124,12 +150,7 @@ for (const m of MEASURES) {
   box.checked = shown[m.key];
   box.addEventListener("change", () => {
     shown[m.key] = box.checked;
-    if (!chart) return;
-    // Rebuild so axes appear and disappear with their measures; keep the viewing window.
-    const { min, max } = chart.scales.x;
-    chart.destroy();
-    drawChart();
-    chart.setScale("x", { min, max });
+    if (chart) rebuildChart(); // axes appear and disappear with their measures
   });
   label.append(box, " " + m.label);
   document.getElementById("measures").append(label);
@@ -243,5 +264,7 @@ resetButton.addEventListener("click", () => {
 });
 
 window.addEventListener("resize", () => {
-  if (chart) chart.setSize({ width: chartEl.clientWidth, height: chartHeight() });
+  if (!chart) return;
+  if (chartEl.clientWidth < COMPACT_WIDTH !== chartCompact) rebuildChart(); // e.g. phone rotated
+  else chart.setSize({ width: chartEl.clientWidth, height: chartHeight() });
 });
