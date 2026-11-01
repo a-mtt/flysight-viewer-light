@@ -89,6 +89,26 @@ h2 {
   font: inherit;
 }
 
+#measures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+#measures label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+/* Measures are toggled with the checkboxes, so the legend is read-only. */
+.u-legend .u-series {
+  pointer-events: none;
+}
+
 #chart {
   width: 100%;
 }

@@ -53,7 +53,7 @@ groundInput.addEventListener("change", () => {
   setGround(ground);
   updateScore();
   const { min, max } = chart.scales.x;
-  chart.setData([track.t, track.alt, track.vSpeed, track.hSpeed]);
+  chart.setData(chartData());
   chart.setScale("x", { min, max }); // keep the viewing window
 });
 
@@ -66,7 +66,29 @@ function clearTrack() {
   viewer.hidden = true;
 }
 
+// Measures that can be shown on the chart, in legend order.
+const MEASURES = [
+  { key: "alt", label: "Altitude (m)", scale: "m", stroke: "#2563eb", width: 2, digits: 0 },
+  { key: "vSpeed", label: "Vertical speed (km/h)", scale: "kmh", stroke: "#dc2626", digits: 0 },
+  { key: "hSpeed", label: "Horizontal speed (km/h)", scale: "kmh", stroke: "#16a34a", digits: 0 },
+  { key: "tSpeed", label: "Total speed (km/h)", scale: "kmh", stroke: "#7c3aed", digits: 0 },
+  { key: "glide", label: "Glide ratio", scale: "glide", stroke: "#ea580c", digits: 2 },
+];
+const AXES = [
+  { scale: "m", label: "Altitude (m)", side: 3 },
+  { scale: "kmh", label: "Speed (km/h)", side: 1 },
+  { scale: "glide", label: "Glide ratio", side: 1 },
+];
+// Which measures are shown; kept across imports until the page is reloaded.
+const shown = { alt: true, vSpeed: true, hSpeed: true, tSpeed: false, glide: false };
+
+function chartData() {
+  return [track.t, ...MEASURES.map((m) => track[m.key])];
+}
+
 function drawChart() {
+  // Only draw the axes that have a visible measure; the first one gets the grid.
+  const axes = AXES.filter((a) => MEASURES.some((m) => m.scale === a.scale && shown[m.key]));
   const opts = {
     width: chartEl.clientWidth,
     height: chartHeight(),
@@ -74,22 +96,43 @@ function drawChart() {
     scales: { x: { time: false } },
     series: [
       { label: "Time (s)", value: (u, v) => (v == null ? "-" : v.toFixed(1)) },
-      { label: "Altitude (m)", scale: "m", stroke: "#2563eb", width: 2, value: (u, v) => fmt(v, 0) },
-      { label: "Vertical speed (km/h)", scale: "kmh", stroke: "#dc2626", width: 1.5, value: (u, v) => fmt(v, 0) },
-      { label: "Horizontal speed (km/h)", scale: "kmh", stroke: "#16a34a", width: 1.5, value: (u, v) => fmt(v, 0) },
+      ...MEASURES.map((m) => ({
+        label: m.label,
+        scale: m.scale,
+        stroke: m.stroke,
+        width: m.width || 1.5,
+        show: shown[m.key],
+        value: (u, v) => fmt(v, m.digits),
+      })),
     ],
-    axes: [
-      { label: "Time (s)" },
-      { scale: "m", label: "Altitude (m)" },
-      { scale: "kmh", label: "Speed (km/h)", side: 1, grid: { show: false } },
-    ],
+    axes: [{ label: "Time (s)" }, ...axes.map((a, i) => ({ ...a, grid: { show: i === 0 } }))],
     hooks: {
       setScale: [(u, key) => { if (key === "x") syncInputs(u); }],
       drawClear: [drawScoringBand],
     },
   };
-  chart = new uPlot(opts, [track.t, track.alt, track.vSpeed, track.hSpeed], chartEl);
+  chart = new uPlot(opts, chartData(), chartEl);
   addTouchZoom(chart);
+}
+
+// Checkboxes to show or hide each measure.
+for (const m of MEASURES) {
+  const label = document.createElement("label");
+  label.style.color = m.stroke;
+  const box = document.createElement("input");
+  box.type = "checkbox";
+  box.checked = shown[m.key];
+  box.addEventListener("change", () => {
+    shown[m.key] = box.checked;
+    if (!chart) return;
+    // Rebuild so axes appear and disappear with their measures; keep the viewing window.
+    const { min, max } = chart.scales.x;
+    chart.destroy();
+    drawChart();
+    chart.setScale("x", { min, max });
+  });
+  label.append(box, " " + m.label);
+  document.getElementById("measures").append(label);
 }
 
 // uPlot's drag-to-zoom only listens to the mouse. On touch screens, a sideways

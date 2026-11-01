@@ -1,5 +1,5 @@
 // Parses a FlySight 1 or FlySight 2 track CSV into arrays for charting.
-// Returns { t, hMSL, ground, lat, lon, vSpeed, hSpeed } where:
+// Returns { t, hMSL, ground, lat, lon, vSpeed, hSpeed, tSpeed, glide } where:
 //   t      seconds since the first sample
 //   hMSL   metres above mean sea level, as recorded
 //   ground estimated ground elevation in metres above sea level
@@ -8,6 +8,8 @@
 //   lon    degrees
 //   vSpeed km/h, positive when descending
 //   hSpeed km/h
+//   tSpeed km/h, total speed in 3D
+//   glide  horizontal / vertical speed, null unless descending faster than 10 km/h
 function parseFlySight(text) {
   const lines = text.split(/\r?\n/).filter((l) => l.trim() !== "");
   if (lines.length === 0) throw new Error("The file is empty.");
@@ -59,6 +61,8 @@ function parseFlySight(text) {
   const vAcc = [];
   const vSpeed = [];
   const hSpeed = [];
+  const tSpeed = [];
+  const glide = [];
   for (const f of rows) {
     const time = Date.parse(f[iTime]);
     const la = parseFloat(f[iLat]);
@@ -75,6 +79,8 @@ function parseFlySight(text) {
     vAcc.push(iVAcc >= 0 ? parseFloat(f[iVAcc]) : 0);
     vSpeed.push(d * 3.6);
     hSpeed.push(Math.hypot(n, e) * 3.6);
+    tSpeed.push(Math.hypot(n, e, d) * 3.6);
+    glide.push(d * 3.6 > 10 ? Math.hypot(n, e) / d : null); // blank in the plane and on the ground
   }
   if (ms.length === 0) throw new Error("No GPS samples found in the file.");
 
@@ -92,6 +98,8 @@ function parseFlySight(text) {
     lon,
     vSpeed,
     hSpeed,
+    tSpeed,
+    glide,
   };
 }
 
