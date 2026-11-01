@@ -2,6 +2,7 @@ const fileInput = document.getElementById("file");
 const filenameEl = document.getElementById("filename");
 const errorEl = document.getElementById("error");
 const viewer = document.getElementById("viewer");
+const emptyEl = document.getElementById("empty");
 const chartEl = document.getElementById("chart");
 const fromInput = document.getElementById("from");
 const toInput = document.getElementById("to");
@@ -29,8 +30,10 @@ fileInput.addEventListener("change", async () => {
   } catch (err) {
     errorEl.textContent = err.message;
     errorEl.hidden = false;
+    emptyEl.hidden = false;
     return;
   }
+  emptyEl.hidden = true;
   viewer.hidden = false;
   groundInput.value = track.ground;
   setGround(track.ground);
@@ -67,18 +70,24 @@ function clearTrack() {
 }
 
 // Measures that can be shown on the chart, in legend order.
+// Each one's colour is the CSS variable --c-<key> (light and dark versions in style.css).
 const MEASURES = [
-  { key: "alt", label: "Altitude (m)", scale: "m", stroke: "#2563eb", width: 2, digits: 0 },
-  { key: "vSpeed", label: "Vertical speed (km/h)", scale: "kmh", stroke: "#dc2626", digits: 0 },
-  { key: "hSpeed", label: "Horizontal speed (km/h)", scale: "kmh", stroke: "#16a34a", digits: 0 },
-  { key: "tSpeed", label: "Total speed (km/h)", scale: "kmh", stroke: "#7c3aed", digits: 0 },
-  { key: "glide", label: "Glide ratio", scale: "glide", stroke: "#ea580c", digits: 2 },
+  { key: "alt", label: "Altitude (m)", scale: "m", width: 2, digits: 0 },
+  { key: "vSpeed", label: "Vertical speed (km/h)", scale: "kmh", digits: 0 },
+  { key: "hSpeed", label: "Horizontal speed (km/h)", scale: "kmh", digits: 0 },
+  { key: "tSpeed", label: "Total speed (km/h)", scale: "kmh", digits: 0 },
+  { key: "glide", label: "Glide ratio", scale: "glide", digits: 2 },
 ];
+// `color` names the measure whose colour an axis with a single measure takes.
 const AXES = [
-  { scale: "m", label: "Altitude (m)", side: 3, color: "#2563eb" },
+  { scale: "m", label: "Altitude (m)", side: 3, color: "alt" },
   { scale: "kmh", label: "Speed (km/h)", side: 1 },
-  { scale: "glide", label: "Glide ratio", side: 1, color: "#ea580c" },
+  { scale: "glide", label: "Glide ratio", side: 1, color: "glide" },
 ];
+
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
 // Below this chart width (phones), axes drop their titles and use smaller text.
 const COMPACT_WIDTH = 600;
 let chartCompact = false;
@@ -103,15 +112,15 @@ function drawChart() {
       ...MEASURES.map((m) => ({
         label: m.label,
         scale: m.scale,
-        stroke: m.stroke,
+        stroke: cssVar(`--c-${m.key}`),
         width: m.width || 1.5,
         show: shown[m.key],
         value: (u, v) => fmt(v, m.digits),
       })),
     ],
     axes: [
-      chartCompact ? { label: "Time (s)", ...COMPACT_AXIS } : { label: "Time (s)" },
-      ...axes.map((a, i) => (chartCompact ? compactAxis(a, i === 0) : { ...a, grid: { show: i === 0 } })),
+      { label: "Time (s)", ...axisColors(true), ...(chartCompact ? COMPACT_AXIS : {}) },
+      ...axes.map((a, i) => (chartCompact ? compactAxis(a, i === 0) : fullAxis(a, i === 0))),
     ],
     hooks: {
       setScale: [(u, key) => { if (key === "x") syncInputs(u); }],
@@ -122,13 +131,26 @@ function drawChart() {
   addTouchZoom(chart);
 }
 
-const COMPACT_AXIS = { font: "10px system-ui, sans-serif", labelFont: "bold 10px system-ui, sans-serif", gap: 2, ticks: { size: 4 } };
+const COMPACT_AXIS = { font: "10px system-ui, sans-serif", labelFont: "bold 10px system-ui, sans-serif", gap: 2 };
 
-// Phone-sized axis: no title, narrow, tick labels coloured like their measure
-// when the axis has only one, and thousands of metres shortened to "2.5k".
+// Theme colours for an axis: labels in the muted text colour, or in the
+// measure's colour when the axis has only one measure.
+function axisColors(grid, measure) {
+  const line = cssVar("--grid");
+  return {
+    stroke: measure ? cssVar(`--c-${measure}`) : cssVar("--muted"),
+    grid: { show: grid, stroke: line, width: 1 },
+    ticks: { stroke: line, width: 1, size: chartCompact ? 4 : 10 },
+  };
+}
+
+function fullAxis(a, grid) {
+  return { scale: a.scale, side: a.side, label: a.label, ...axisColors(grid, a.color) };
+}
+
+// Phone-sized axis: no title, narrow, small text, and thousands of metres shortened to "2.5k".
 function compactAxis(a, grid) {
-  const axis = { scale: a.scale, side: a.side, size: 34, grid: { show: grid }, ...COMPACT_AXIS };
-  if (a.color) axis.stroke = a.color;
+  const axis = { scale: a.scale, side: a.side, size: 34, ...axisColors(grid, a.color), ...COMPACT_AXIS };
   if (a.scale === "m") axis.values = (u, vals) => vals.map((v) => (Math.abs(v) >= 1000 ? `${+(v / 1000).toFixed(1)}k` : v));
   return axis;
 }
@@ -141,10 +163,13 @@ function rebuildChart() {
   chart.setScale("x", { min, max });
 }
 
-// Checkboxes to show or hide each measure.
+// Toggles to show or hide each measure: checkboxes styled as pills.
 for (const m of MEASURES) {
   const label = document.createElement("label");
-  label.style.color = m.stroke;
+  label.className = "measure";
+  label.style.setProperty("--m", `var(--c-${m.key})`);
+  const dot = document.createElement("span");
+  dot.className = "dot";
   const box = document.createElement("input");
   box.type = "checkbox";
   box.checked = shown[m.key];
@@ -152,7 +177,7 @@ for (const m of MEASURES) {
     shown[m.key] = box.checked;
     if (chart) rebuildChart(); // axes appear and disappear with their measures
   });
-  label.append(box, " " + m.label);
+  label.append(box, dot, m.label);
   document.getElementById("measures").append(label);
 }
 
@@ -201,7 +226,7 @@ function drawScoringBand(u) {
   const x2 = Math.min(left + width, u.valToPos(score.end, "x", true));
   if (x2 <= x1) return;
   u.ctx.save();
-  u.ctx.fillStyle = "rgba(234, 179, 8, 0.2)";
+  u.ctx.fillStyle = cssVar("--band");
   u.ctx.fillRect(x1, top, x2 - x1, height);
   u.ctx.restore();
 }
@@ -261,6 +286,11 @@ toInput.addEventListener("change", applyInputs);
 resetButton.addEventListener("click", () => {
   if (!chart) return;
   chart.setScale("x", { min: track.t[0], max: track.t[track.t.length - 1] });
+});
+
+// The chart draws on a canvas, so it has to be redrawn when the system switches light/dark.
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  if (chart) rebuildChart();
 });
 
 window.addEventListener("resize", () => {
