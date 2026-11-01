@@ -89,7 +89,44 @@ function drawChart() {
     },
   };
   chart = new uPlot(opts, [track.t, track.alt, track.vSpeed, track.hSpeed], chartEl);
-  syncInputs(chart);
+  addTouchZoom(chart);
+}
+
+// uPlot's drag-to-zoom only listens to the mouse. On touch screens, a sideways
+// drag selects a range and zooms to it; vertical swipes still scroll the page.
+function addTouchZoom(u) {
+  const over = u.over;
+  over.style.touchAction = "pan-y";
+  let startX = null;
+
+  const xOf = (e) => Math.max(0, Math.min(e.clientX - over.getBoundingClientRect().left, over.clientWidth));
+  const clear = () => {
+    startX = null;
+    u.setSelect({ left: 0, top: 0, width: 0, height: 0 }, false);
+  };
+
+  over.addEventListener("pointerdown", (e) => {
+    if (e.pointerType !== "touch") return;
+    startX = xOf(e);
+    try {
+      over.setPointerCapture(e.pointerId); // keep tracking if the finger leaves the chart
+    } catch {}
+  });
+  over.addEventListener("pointermove", (e) => {
+    if (startX === null) return;
+    const x = xOf(e);
+    u.setSelect({ left: Math.min(startX, x), top: 0, width: Math.abs(x - startX), height: over.clientHeight }, false);
+  });
+  over.addEventListener("pointerup", (e) => {
+    if (startX === null) return;
+    const x = xOf(e);
+    const left = Math.min(startX, x);
+    const width = Math.abs(x - startX);
+    clear();
+    if (width < 10) return; // a tap, not a drag
+    chart.setScale("x", { min: u.posToVal(left, "x"), max: u.posToVal(left + width, "x") });
+  });
+  over.addEventListener("pointercancel", clear);
 }
 
 // Shades the scoring window behind the chart lines.
@@ -132,6 +169,7 @@ function chartHeight() {
 
 // Chart zoom -> inputs
 function syncInputs(u) {
+  if (u.scales.x.min == null) return; // not laid out yet; the setScale hook fills them in
   fromInput.value = u.scales.x.min.toFixed(1);
   toInput.value = u.scales.x.max.toFixed(1);
 }
