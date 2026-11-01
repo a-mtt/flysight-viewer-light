@@ -1,0 +1,94 @@
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  padding: 16px;
+  font-family: system-ui, sans-serif;
+  background: #fff;
+  color: #222;
+}
+
+header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+h1 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.button,
+button {
+  padding: 8px 14px;
+  border: 1px solid #2563eb;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+#reset {
+  background: #fff;
+  color: #2563eb;
+}
+
+#filename,
+.hint {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+#error,
+#score-error {
+  color: #b91c1c;
+}
+
+#score {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 32px;
+  margin: 0;
+}
+
+#score dt {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+#score dd {
+  margin: 4px 0 0;
+  font-size: 1.4rem;
+  font-variant-numeric: tabular-nums;
+}
+
+h2 {
+  font-size: 1.1rem;
+  margin: 24px 0 12px;
+}
+
+#window,
+#scoring-window {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+#window input,
+#scoring-window input {
+  width: 6em;
+  padding: 6px;
+  font: inherit;
+}
+
+#chart {
+  width: 100%;
+}

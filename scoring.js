@@ -1,0 +1,53 @@
+// Scores the descent between two altitudes (metres above ground, same as the chart).
+// Only the part of the track after its highest point (exit) is considered,
+// so the climb in the plane is ignored.
+// Returns { start, end, time, distance, speed } with start/end in track seconds,
+// time in s, distance in m (straight line, entry to exit) and speed in km/h,
+// or { error } when the window can't be found.
+function scoreWindow(track, top, bottom) {
+  if (!(top > bottom)) return { error: "Top must be higher than bottom." };
+
+  const h = track.alt;
+  let iExit = 0;
+  for (let i = 1; i < h.length; i++) if (h[i] > h[iExit]) iExit = i;
+
+  const entry = crossing(track, top, iExit);
+  if (!entry) return { error: `The track never descends through ${top} m.` };
+  const exit = crossing(track, bottom, entry.i);
+  if (!exit) return { error: `The track never descends through ${bottom} m.` };
+
+  const time = exit.t - entry.t;
+  const distance = groundDistance(entry.lat, entry.lon, exit.lat, exit.lon);
+  return { start: entry.t, end: exit.t, time, distance, speed: (distance / time) * 3.6 };
+}
+
+// First point at or after index `from` where altitude drops below `alt`,
+// interpolated between the two samples either side of it.
+function crossing(track, alt, from) {
+  const h = track.alt;
+  for (let i = Math.max(from, 1); i < h.length; i++) {
+    if (h[i - 1] >= alt && h[i] < alt) {
+      const f = (h[i - 1] - alt) / (h[i - 1] - h[i]);
+      const lerp = (a) => a[i - 1] + f * (a[i] - a[i - 1]);
+      return { i, t: lerp(track.t), lat: lerp(track.lat), lon: lerp(track.lon) };
+    }
+  }
+  return null;
+}
+
+// Horizontal distance in metres on the WGS84 ellipsoid. Uses the local
+// curvature at the mean latitude, accurate to well under a metre over a few km.
+function groundDistance(lat1, lon1, lat2, lon2) {
+  const a = 6378137;
+  const e2 = 6.69437999014e-3;
+  const rad = Math.PI / 180;
+  const phi = ((lat1 + lat2) / 2) * rad;
+  const w = 1 - e2 * Math.sin(phi) ** 2;
+  const meridian = (a * (1 - e2)) / w ** 1.5;
+  const primeVertical = a / Math.sqrt(w);
+  const north = (lat2 - lat1) * rad * meridian;
+  const east = (lon2 - lon1) * rad * primeVertical * Math.cos(phi);
+  return Math.hypot(north, east);
+}
+
+if (typeof module !== "undefined") module.exports = { scoreWindow };
