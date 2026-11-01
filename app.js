@@ -298,3 +298,6 @@ window.addEventListener("resize", () => {
   if (chartEl.clientWidth < COMPACT_WIDTH !== chartCompact) rebuildChart(); // e.g. phone rotated
   else chart.setSize({ width: chartEl.clientWidth, height: chartHeight() });
 });
+
+// Lets the app be installed and opened offline (needs https or localhost).
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");

@@ -4,9 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>FlySight Viewer</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.30/dist/uPlot.min.css">
+  <meta name="description" content="View and score FlySight tracks on your phone or laptop.">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#181b21" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="vendor/uPlot.min.css">
   <!-- Bump ?v= whenever style.css or a script changes, so browsers fetch the new file instead of a cached one. -->
-  <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
   <header class="topbar">
@@ -71,9 +77,9 @@
     </div>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/uplot@1.6.30/dist/uPlot.iife.min.js"></script>
-  <script src="parser.js?v=6"></script>
-  <script src="scoring.js?v=6"></script>
-  <script src="app.js?v=6"></script>
+  <script src="vendor/uPlot.iife.min.js"></script>
+  <script src="parser.js?v=7"></script>
+  <script src="scoring.js?v=7"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>
