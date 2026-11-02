@@ -51,7 +51,7 @@ For example `26-08-01/17-15-09/TRACK.CSV` is a jump on 1 August 2026 at 17:15:09
 
 1. Tap **Import track** and pick a `TRACK.CSV` file. Importing a new track replaces the previous one.
 2. **Chart:** tap the coloured pills to show or hide each measure. Glide ratio and total speed are off by default.
-3. **Zoom:** drag sideways across the chart (mouse or finger), or type the **From** and **To** times in seconds. **Reset** shows the whole track.
+3. **Zoom:** drag sideways across the chart (mouse or finger), or type the **From** and **To** times in seconds. **Find jump** zooms to the jump, from 2 s before exit down to 1000 m above the dropzone. **Reset** shows the whole track.
 4. **Scoring:** set the window with **Top** and **Bottom** (metres above the dropzone, 2500 → 1500 m by default). The app finds where you descend through them after exit and shows:
    - **Time in window** in seconds
    - **Distance:** straight line from where you entered the window to where you left it
@@ -88,6 +88,8 @@ They're stored in your browser only, never uploaded. Each device keeps its own s
 | Glide ratio | horizontal speed ÷ vertical speed, only while descending faster than 10 km/h |
 
 Window entry and exit times are interpolated between GPS samples.
+
+**Finding the exit:** after the top of the climb, the app looks for the first moment vertical speed passes 10 m/s (36 km/h), which the plane never reaches but a jumper does about a second after leaving. It then steps back to where that acceleration began. A hop-and-pop that opens before reaching 10 m/s isn't detected.
 
 ## Run it on your own computer
 

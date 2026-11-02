@@ -7,6 +7,7 @@ const chartEl = document.getElementById("chart");
 const fromInput = document.getElementById("from");
 const toInput = document.getElementById("to");
 const resetButton = document.getElementById("reset");
+const findJumpButton = document.getElementById("find-jump");
 const groundInput = document.getElementById("ground");
 const topInput = document.getElementById("top");
 const bottomInput = document.getElementById("bottom");
@@ -357,6 +358,18 @@ function applyInputs() {
 
 fromInput.addEventListener("change", applyInputs);
 toInput.addEventListener("change", applyInputs);
+
+// Zooms to the jump: from 2 s before exit to 1000 m above ground.
+findJumpButton.addEventListener("click", () => {
+  if (!chart) return;
+  const jump = findJump(track);
+  errorEl.hidden = !jump.error;
+  if (jump.error) {
+    errorEl.textContent = jump.error;
+    return;
+  }
+  chart.setScale("x", { min: Math.max(track.t[0], jump.exit - 2), max: jump.end });
+});
 
 resetButton.addEventListener("click", () => {
   if (!chart) return;

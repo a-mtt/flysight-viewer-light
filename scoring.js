@@ -7,11 +7,7 @@
 function scoreWindow(track, top, bottom) {
   if (!(top > bottom)) return { error: "Top must be higher than bottom." };
 
-  const h = track.alt;
-  let iExit = 0;
-  for (let i = 1; i < h.length; i++) if (h[i] > h[iExit]) iExit = i;
-
-  const entry = crossing(track, top, iExit);
+  const entry = crossing(track, top, highestIndex(track));
   if (!entry) return { error: `The track never descends through ${top} m.` };
   const exit = crossing(track, bottom, entry.i);
   if (!exit) return { error: `The track never descends through ${bottom} m.` };
@@ -19,6 +15,38 @@ function scoreWindow(track, top, bottom) {
   const time = exit.t - entry.t;
   const distance = groundDistance(entry.lat, entry.lon, exit.lat, exit.lon);
   return { start: entry.t, end: exit.t, time, distance, speed: (distance / time) * 3.6 };
+}
+
+// Finds the jump: from exit to the first time the track descends through 1000 m
+// above ground (or the end of the track if it never does).
+// Exit: after the top of the climb, the first time vertical speed passes 10 m/s
+// (the plane never descends that fast; a jumper reaches it ~1 s after leaving),
+// then back to where that acceleration began.
+// Returns { exit, end } in track seconds, or { error }.
+const EXIT_SPEED = 36; // km/h (10 m/s)
+const EXIT_ACCEL = 1; // m/s²; below this the vertical speed is changing at plane-like rates
+const JUMP_BOTTOM = 1000; // m above ground
+
+function findJump(track) {
+  const { t, vSpeed } = track;
+  let i = highestIndex(track);
+  while (i < t.length && vSpeed[i] <= EXIT_SPEED) i++;
+  if (i === t.length) return { error: "No exit found in this track." };
+
+  // Step back while vertical speed was still building up quickly.
+  const accel = (j) => (vSpeed[j] - vSpeed[j - 1]) / 3.6 / (t[j] - t[j - 1]);
+  let iExit = i;
+  while (iExit > 1 && accel(iExit) >= EXIT_ACCEL) iExit--;
+
+  const bottom = crossing(track, JUMP_BOTTOM, iExit);
+  return { exit: t[iExit], end: bottom ? bottom.t : t[t.length - 1] };
+}
+
+function highestIndex(track) {
+  const h = track.alt;
+  let top = 0;
+  for (let i = 1; i < h.length; i++) if (h[i] > h[top]) top = i;
+  return top;
 }
 
 // First point at or after index `from` where altitude drops below `alt`,
@@ -50,4 +78,4 @@ function groundDistance(lat1, lon1, lat2, lon2) {
   return Math.hypot(north, east);
 }
 
-if (typeof module !== "undefined") module.exports = { scoreWindow };
+if (typeof module !== "undefined") module.exports = { scoreWindow, findJump };
