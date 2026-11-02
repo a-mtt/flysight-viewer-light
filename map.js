@@ -6,14 +6,21 @@
 //   resize()                              call after the map's container is shown again
 //   reset()                               forget the framing and hide the dot (new track)
 function createTrackMap(el) {
-  const map = L.map(el, { preferCanvas: true });
+  // SVG rather than canvas: Leaflet's canvas renderer can throw on remove when
+  // layers change quickly (seen in Safari while hovering the chart), and then
+  // stops drawing the track altogether.
+  const map = L.map(el);
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   }).addTo(map);
 
   const layers = L.layerGroup().addTo(map);
-  const cursor = L.circleMarker([0, 0], { radius: 7, weight: 3, color: "#fff", fillOpacity: 1 });
+  // The cursor dot stays on the map and is hidden rather than removed, so
+  // hovering the chart doesn't add and remove a layer on every mouse move.
+  const HIDDEN = { opacity: 0, fillOpacity: 0 };
+  const cursor = L.circleMarker([0, 0], { radius: 7, weight: 3, color: "#fff", interactive: false, ...HIDDEN });
+  let cursorShown = false;
 
   const color = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   const latLngs = (track, i0, i1) => {
@@ -62,18 +69,25 @@ function createTrackMap(el) {
     const key = `${from}|${to}`;
     if (key !== shownRange) {
       shownRange = key;
-      map.fitBounds(line.getBounds(), { padding: [20, 20], maxZoom: 17 });
+      // Not animated: a reframe arriving mid-animation can leave the map at the wrong view.
+      map.stop();
+      map.fitBounds(line.getBounds(), { padding: [20, 20], maxZoom: 17, animate: false });
     }
     cursor.setStyle({ fillColor: color("--text") });
+    if (!map.hasLayer(cursor)) cursor.addTo(map); // after the first fitBounds gives the map a view
+    cursor.bringToFront();
   }
 
   function setCursor(track, i) {
+    if (!map.hasLayer(cursor)) return; // map not drawn yet
     if (i == null) {
-      cursor.remove();
+      if (cursorShown) cursor.setStyle(HIDDEN);
+      cursorShown = false;
       return;
     }
     cursor.setLatLng([track.lat[i], track.lon[i]]);
-    if (!map.hasLayer(cursor)) cursor.addTo(map);
+    if (!cursorShown) cursor.setStyle({ opacity: 1, fillOpacity: 1 });
+    cursorShown = true;
   }
 
   // The map container may have been hidden when Leaflet measured it.
@@ -83,7 +97,8 @@ function createTrackMap(el) {
 
   function reset() {
     shownRange = null;
-    cursor.remove();
+    cursor.setStyle(HIDDEN);
+    cursorShown = false;
   }
 
   return { update, setCursor, resize, reset };
