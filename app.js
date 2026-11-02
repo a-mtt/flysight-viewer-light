@@ -17,10 +17,12 @@ const dzHintEl = document.getElementById("dz-hint");
 const dzSavedEl = document.getElementById("dz-saved");
 const useEstimateButton = document.getElementById("use-estimate");
 const resetSettingsButton = document.getElementById("reset-settings");
+const mapEl = document.getElementById("map");
 
 let chart = null;
 let track = null;
 let score = null;
+let trackMap = null; // created on the first import, once the map card is visible
 
 // Settings kept on this device between visits (browser storage, never uploaded):
 //   dz      DZ elevation typed by the user, or null to use each track's estimate
@@ -71,10 +73,24 @@ fileInput.addEventListener("change", async () => {
   }
   emptyEl.hidden = true;
   viewer.hidden = false;
+  if (trackMap) trackMap.resize();
+  else trackMap = createTrackMap(mapEl);
   setGround();
   updateScore();
   drawChart();
 });
+
+// Redraws the map for the current viewing window, at most once per frame.
+let mapUpdatePending = false;
+function updateMap() {
+  if (mapUpdatePending) return;
+  mapUpdatePending = true;
+  requestAnimationFrame(() => {
+    mapUpdatePending = false;
+    if (!chart || !trackMap || chart.scales.x.min == null) return;
+    trackMap.update(track, chart.scales.x.min, chart.scales.x.max, score, findJump(track));
+  });
+}
 
 // Uses the saved DZ elevation if there is one, otherwise the track's estimate,
 // and recomputes altitude above ground for the chart and scoring.
@@ -110,6 +126,7 @@ useEstimateButton.addEventListener("click", () => {
 });
 
 function clearTrack() {
+  if (trackMap) trackMap.reset();
   if (chart) chart.destroy();
   chart = null;
   track = null;
@@ -173,7 +190,8 @@ function drawChart() {
       ...axes.map((a, i) => (chartCompact ? compactAxis(a, i === 0) : fullAxis(a, i === 0))),
     ],
     hooks: {
-      setScale: [(u, key) => { if (key === "x") syncInputs(u); }],
+      setScale: [(u, key) => { if (key === "x") { syncInputs(u); updateMap(); } }],
+      setCursor: [(u) => { if (trackMap) trackMap.setCursor(track, u.cursor.idx); }],
       drawClear: [drawScoringBand],
     },
   };
@@ -295,6 +313,7 @@ function updateScore() {
     document.getElementById("score-speed").textContent = `${score.speed.toFixed(1)} km/h`;
   }
   if (chart) chart.redraw(false);
+  updateMap();
 }
 
 function scoringWindowChanged() {

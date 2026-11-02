@@ -420,3 +420,39 @@ footer {
   font-size: 0.8rem;
   text-align: center;
 }
+
+/* Map */
+
+#map {
+  height: 360px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  z-index: 0; /* keep Leaflet's panes under the rest of the page */
+}
+
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.map-legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px var(--border);
+  vertical-align: -1px;
+}
+
+@media (max-width: 480px) {
+  #map {
+    height: 300px;
+  }
+}

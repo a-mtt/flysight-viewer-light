@@ -6,10 +6,11 @@ A simple web app to view and score [FlySight](https://flysight.ca) tracks on you
 
 - Altitude, vertical speed, horizontal speed, total speed and glide ratio on one chart
 - Zoom in on any part of the jump
+- See the jump on a map, linked to the chart
 - Score a performance window: time in window, distance and horizontal speed
 - Works offline once installed, so you can use it at the dropzone
 - Remembers your DZ elevation, scoring window and chart choices, handy for several days at the same dropzone
-- No account, nothing to set up. Your track is read on your device and never uploaded.
+- No account, nothing to set up. Your track is read on your device and never uploaded (see [Privacy](#privacy)).
 
 Supports FlySight 2 and FlySight 1 track files (`TRACK.CSV`).
 
@@ -52,12 +53,19 @@ For example `26-08-01/17-15-09/TRACK.CSV` is a jump on 1 August 2026 at 17:15:09
 1. Tap **Import track** and pick a `TRACK.CSV` file. Importing a new track replaces the previous one.
 2. **Chart:** tap the coloured pills to show or hide each measure. Glide ratio and total speed are off by default.
 3. **Zoom:** drag sideways across the chart (mouse or finger), or type the **From** and **To** times in seconds. **Find jump** zooms to the jump, from 2 s before exit down to 1000 m above the dropzone. **Reset** shows the whole track.
-4. **Scoring:** set the window with **Top** and **Bottom** (metres above the dropzone, 2500 → 1500 m by default). The app finds where you descend through them after exit and shows:
+4. **Map:** shows your ground track for the current viewing window, with markers for exit, the scoring window (yellow) and 1000 m. Hover over or touch the chart to see where you were at that moment. The map follows the viewing window, so **Find jump** frames the jump.
+5. **Scoring:** set the window with **Top** and **Bottom** (metres above the dropzone, 2500 → 1500 m by default). The app finds where you descend through them after exit and shows:
    - **Time in window** in seconds
    - **Distance:** straight line from where you entered the window to where you left it
    - **Horizontal speed:** distance ÷ time
 
    The scoring window is shaded in yellow on the chart.
+
+### Privacy
+
+Your track file is read on your device and never uploaded. The map background comes from [OpenStreetMap](https://www.openstreetmap.org): to draw it, your browser downloads map images of the area you're looking at, so OpenStreetMap's servers can see roughly which area that is. The track itself is drawn on your device.
+
+The map background needs an internet connection. Offline, the rest of the app works normally; the map only shows areas your browser still has saved.
 
 ### DZ elevation
 
@@ -108,10 +116,11 @@ Then open http://localhost:8000. To try it on a phone on the same Wi‑Fi, add `
 | `index.html` | Page layout |
 | `style.css` | Styles, light and dark themes |
 | `parser.js` | Reads FlySight 1 and 2 CSV files |
-| `scoring.js` | Finds the scoring window and computes the score |
+| `scoring.js` | Finds the scoring window, the exit and the score |
+| `map.js` | Map of the ground track |
 | `app.js` | Chart, controls and wiring |
 | `sw.js` | Offline support |
 | `manifest.webmanifest`, `icons/` | Makes the app installable |
-| `vendor/` | [uPlot](https://github.com/leeoniya/uPlot) chart library (MIT) |
+| `vendor/` | [uPlot](https://github.com/leeoniya/uPlot) chart library (MIT) and [Leaflet](https://leafletjs.com) map library (BSD-2) |
 
 When you change `style.css` or a `.js` file, bump the `?v=` number in `index.html` so browsers load the new version.
