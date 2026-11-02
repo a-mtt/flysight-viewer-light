@@ -12,10 +12,45 @@ const topInput = document.getElementById("top");
 const bottomInput = document.getElementById("bottom");
 const scoreEl = document.getElementById("score");
 const scoreErrorEl = document.getElementById("score-error");
+const dzHintEl = document.getElementById("dz-hint");
+const dzSavedEl = document.getElementById("dz-saved");
+const useEstimateButton = document.getElementById("use-estimate");
+const resetSettingsButton = document.getElementById("reset-settings");
 
 let chart = null;
 let track = null;
 let score = null;
+
+// Settings kept on this device between visits (browser storage, never uploaded):
+//   dz      DZ elevation typed by the user, or null to use each track's estimate
+//   top     scoring window top (m)
+//   bottom  scoring window bottom (m)
+//   shown   which measures are shown on the chart
+const SETTINGS_KEY = "flysight-viewer-settings";
+const DEFAULTS = {
+  dz: null,
+  top: 2500,
+  bottom: 1500,
+  shown: { alt: true, vSpeed: true, hSpeed: true, tSpeed: false, glide: false },
+};
+const settings = loadSettings();
+
+function loadSettings() {
+  let saved = {};
+  try {
+    saved = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
+  } catch {} // storage blocked or corrupt: use defaults
+  return { ...DEFAULTS, ...saved, shown: { ...DEFAULTS.shown, ...saved.shown } };
+}
+
+function saveSettings() {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  } catch {} // e.g. private browsing: settings just won't be remembered
+}
+
+topInput.value = settings.top;
+bottomInput.value = settings.bottom;
 
 fileInput.addEventListener("change", async () => {
   const file = fileInput.files[0];
@@ -35,29 +70,42 @@ fileInput.addEventListener("change", async () => {
   }
   emptyEl.hidden = true;
   viewer.hidden = false;
-  groundInput.value = track.ground;
-  setGround(track.ground);
+  setGround();
   updateScore();
   drawChart();
 });
 
-// Recomputes altitude above ground for the chart and scoring.
-function setGround(ground) {
+// Uses the saved DZ elevation if there is one, otherwise the track's estimate,
+// and recomputes altitude above ground for the chart and scoring.
+function setGround() {
+  const ground = settings.dz ?? track.ground;
+  groundInput.value = ground;
   track.alt = track.hMSL.map((a) => a - ground);
+  dzSavedEl.textContent =
+    settings.dz == null ? "Estimated from this track" : `Saved · this track suggests ${track.ground} m`;
+  useEstimateButton.hidden = settings.dz == null;
 }
 
-groundInput.addEventListener("change", () => {
-  if (!track) return;
-  let ground = parseFloat(groundInput.value);
-  if (isNaN(ground)) {
-    ground = track.ground; // empty or invalid: back to the estimate
-    groundInput.value = ground;
-  }
-  setGround(ground);
+// After the DZ elevation changes on a loaded track.
+function groundChanged() {
+  setGround();
   updateScore();
   const { min, max } = chart.scales.x;
   chart.setData(chartData());
   chart.setScale("x", { min, max }); // keep the viewing window
+}
+
+groundInput.addEventListener("change", () => {
+  const ground = parseFloat(groundInput.value);
+  settings.dz = isNaN(ground) ? null : ground; // empty or invalid: back to the estimate
+  saveSettings();
+  if (track) groundChanged();
+});
+
+useEstimateButton.addEventListener("click", () => {
+  settings.dz = null;
+  saveSettings();
+  if (track) groundChanged();
 });
 
 function clearTrack() {
@@ -91,8 +139,9 @@ function cssVar(name) {
 // Below this chart width (phones), axes drop their titles and use smaller text.
 const COMPACT_WIDTH = 600;
 let chartCompact = false;
-// Which measures are shown; kept across imports until the page is reloaded.
-const shown = { alt: true, vSpeed: true, hSpeed: true, tSpeed: false, glide: false };
+// Which measures are shown (saved in settings).
+const shown = settings.shown;
+const measureBoxes = {};
 
 function chartData() {
   return [track.t, ...MEASURES.map((m) => track[m.key])];
@@ -175,8 +224,10 @@ for (const m of MEASURES) {
   box.checked = shown[m.key];
   box.addEventListener("change", () => {
     shown[m.key] = box.checked;
+    saveSettings();
     if (chart) rebuildChart(); // axes appear and disappear with their measures
   });
+  measureBoxes[m.key] = box;
   label.append(box, dot, m.label);
   document.getElementById("measures").append(label);
 }
@@ -245,8 +296,32 @@ function updateScore() {
   if (chart) chart.redraw(false);
 }
 
-topInput.addEventListener("change", () => { if (track) updateScore(); });
-bottomInput.addEventListener("change", () => { if (track) updateScore(); });
+function scoringWindowChanged() {
+  const top = parseFloat(topInput.value);
+  const bottom = parseFloat(bottomInput.value);
+  if (!isNaN(top)) settings.top = top;
+  if (!isNaN(bottom)) settings.bottom = bottom;
+  saveSettings();
+  if (track) updateScore();
+}
+
+topInput.addEventListener("change", scoringWindowChanged);
+bottomInput.addEventListener("change", scoringWindowChanged);
+
+resetSettingsButton.addEventListener("click", () => {
+  try {
+    localStorage.removeItem(SETTINGS_KEY);
+  } catch {}
+  Object.assign(settings, DEFAULTS, { shown: settings.shown });
+  Object.assign(shown, DEFAULTS.shown);
+  for (const key in measureBoxes) measureBoxes[key].checked = shown[key];
+  topInput.value = settings.top;
+  bottomInput.value = settings.bottom;
+  if (!track) return;
+  setGround();
+  updateScore();
+  rebuildChart();
+});
 
 function fmt(v, digits) {
   return v == null ? "-" : v.toFixed(digits);

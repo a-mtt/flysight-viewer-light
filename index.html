@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="stylesheet" href="vendor/uPlot.min.css">
   <!-- Bump ?v= whenever style.css or a script changes, so browsers fetch the new file instead of a cached one. -->
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
   <header class="topbar">
@@ -63,7 +63,14 @@
           <h2>Scoring</h2>
         </div>
         <div id="scoring-window" class="controls">
-          <label class="field"><span>DZ elevation (m above sea level)</span><input id="ground" type="number" step="1"></label>
+          <div class="field">
+            <label for="ground">DZ elevation (m above sea level)</label>
+            <input id="ground" type="number" step="1">
+            <span id="dz-hint" class="field-hint">
+              <span id="dz-saved"></span>
+              <button id="use-estimate" class="link" type="button" hidden>Use estimate</button>
+            </span>
+          </div>
           <label class="field"><span>Top (m)</span><input id="top" type="number" step="1" value="2500"></label>
           <label class="field"><span>Bottom (m)</span><input id="bottom" type="number" step="1" value="1500"></label>
         </div>
@@ -75,11 +82,16 @@
         </dl>
       </section>
     </div>
+
+    <footer>
+      DZ elevation, scoring window and shown measures are saved on this device.
+      <button id="reset-settings" class="link" type="button">Reset saved settings</button>
+    </footer>
   </main>
 
   <script src="vendor/uPlot.iife.min.js"></script>
-  <script src="parser.js?v=7"></script>
-  <script src="scoring.js?v=7"></script>
-  <script src="app.js?v=7"></script>
+  <script src="parser.js?v=8"></script>
+  <script src="scoring.js?v=8"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>

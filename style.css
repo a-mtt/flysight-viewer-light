@@ -389,3 +389,34 @@ input:focus-visible {
     font-size: 1.25rem;
   }
 }
+
+/* Saved settings */
+
+#scoring-window {
+  align-items: flex-start;
+}
+
+.field-hint {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  max-width: 22em;
+  font-size: 0.75rem;
+}
+
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+footer {
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-align: center;
+}

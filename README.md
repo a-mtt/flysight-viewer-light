@@ -8,6 +8,7 @@ A simple web app to view and score [FlySight](https://flysight.ca) tracks on you
 - Zoom in on any part of the jump
 - Score a performance window: time in window, distance and horizontal speed
 - Works offline once installed, so you can use it at the dropzone
+- Remembers your DZ elevation, scoring window and chart choices, handy for several days at the same dropzone
 - No account, nothing to set up. Your track is read on your device and never uploaded.
 
 Supports FlySight 2 and FlySight 1 track files (`TRACK.CSV`).
@@ -63,6 +64,18 @@ For example `26-08-01/17-15-09/TRACK.CSV` is a jump on 1 August 2026 at 17:15:09
 Altitudes are shown above the dropzone. The app estimates the DZ elevation from the lowest point of the track, which is right if you recorded until landing.
 
 If you stopped recording under canopy, or landed somewhere else, type your dropzone's elevation (metres above sea level) in **DZ elevation**. It's the `DZ_Elev` value in the FlySight's `CONFIG.TXT`.
+
+Once typed, it's saved and used for every track you import. Under the field the app shows what each new track suggests, e.g. *Saved · this track suggests 380 m*, so you'll notice if you've moved to another dropzone. Tap **Use estimate** to go back to the automatic value.
+
+### Saved settings
+
+These are remembered on your device between visits:
+
+- DZ elevation (only if you typed one)
+- Scoring window **Top** and **Bottom**
+- Which measures are shown on the chart
+
+They're stored in your browser only, never uploaded. Each device keeps its own settings; on iPhone the home-screen app and Safari also keep separate ones. **Reset saved settings** at the bottom of the page puts everything back to the defaults.
 
 ### How the numbers are calculated
 
