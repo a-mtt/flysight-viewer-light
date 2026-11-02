@@ -54,6 +54,8 @@ function createTrackMap(el) {
     if (jump && !jump.error) {
       if (jump.exit >= from && jump.exit <= to) point(track, jump.exit, "Exit", color("--c-hSpeed"));
       if (jump.end >= from && jump.end <= to) point(track, jump.end, "1000 m", color("--c-vSpeed"));
+      if (jump.laneStart != null && jump.laneStart >= from && jump.laneStart <= to)
+        point(track, jump.laneStart, "Lane start (9 s after 10 m/s)", color("--c-tSpeed"));
     }
 
     // Re-frame only when the viewing window changes, not on every redraw.

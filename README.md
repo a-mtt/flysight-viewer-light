@@ -53,7 +53,7 @@ For example `26-08-01/17-15-09/TRACK.CSV` is a jump on 1 August 2026 at 17:15:09
 1. Tap **Import track** and pick a `TRACK.CSV` file. Importing a new track replaces the previous one.
 2. **Chart:** tap the coloured pills to show or hide each measure. Glide ratio and total speed are off by default.
 3. **Zoom:** drag sideways across the chart (mouse or finger), or type the **From** and **To** times in seconds. **Find jump** zooms to the jump, from 2 s before exit down to 1000 m above the dropzone. **Reset** shows the whole track.
-4. **Map:** shows your ground track for the current viewing window, with markers for exit, the scoring window (yellow) and 1000 m. Hover over or touch the chart to see where you were at that moment. The map follows the viewing window, so **Find jump** frames the jump.
+4. **Map:** shows your ground track for the current viewing window, with markers for exit, lane start, the scoring window (yellow) and 1000 m. **Lane start** is where the FAI wingsuit performance lane begins: 9 seconds after your vertical speed first reaches 10 m/s. Hover over or touch the chart to see where you were at that moment. The map follows the viewing window, so **Find jump** frames the jump.
 5. **Scoring:** set the window with **Top** and **Bottom** (metres above the dropzone, 2500 → 1500 m by default). The app finds where you descend through them after exit and shows:
    - **Time in window** in seconds
    - **Distance:** straight line from where you entered the window to where you left it

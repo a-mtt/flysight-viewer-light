@@ -22,8 +22,13 @@ function scoreWindow(track, top, bottom) {
 // Exit: after the top of the climb, the first time vertical speed passes 10 m/s
 // (the plane never descends that fast; a jumper reaches it ~1 s after leaving),
 // then back to where that acceleration began.
-// Returns { exit, end } in track seconds, or { error }.
+// Also returns the lane start: in FAI wingsuit performance rules (2026, section 2.2)
+// the Validation Window, and with it the Designated Lane, starts 9 s after vertical
+// speed first reaches 10 m/s.
+// Returns { exit, end, laneStart } in track seconds (laneStart is null if the track
+// ends first), or { error }.
 const EXIT_SPEED = 36; // km/h (10 m/s)
+const LANE_DELAY = 9; // s after first reaching EXIT_SPEED
 const EXIT_ACCEL = 1; // m/s²; below this the vertical speed is changing at plane-like rates
 const JUMP_BOTTOM = 1000; // m above ground
 
@@ -38,8 +43,13 @@ function findJump(track) {
   let iExit = i;
   while (iExit > 1 && accel(iExit) >= EXIT_ACCEL) iExit--;
 
+  // Moment vertical speed reached 10 m/s, interpolated between samples i-1 and i.
+  const f = i > 0 ? (EXIT_SPEED - vSpeed[i - 1]) / (vSpeed[i] - vSpeed[i - 1]) : 0;
+  const reached = i > 0 ? t[i - 1] + f * (t[i] - t[i - 1]) : t[i];
+  const laneStart = reached + LANE_DELAY <= t[t.length - 1] ? reached + LANE_DELAY : null;
+
   const bottom = crossing(track, JUMP_BOTTOM, iExit);
-  return { exit: t[iExit], end: bottom ? bottom.t : t[t.length - 1] };
+  return { exit: t[iExit], end: bottom ? bottom.t : t[t.length - 1], laneStart };
 }
 
 function highestIndex(track) {
