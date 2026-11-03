@@ -138,11 +138,12 @@ function clearTrack() {
 // Measures that can be shown on the chart, in legend order.
 // Each one's colour is the CSS variable --c-<key> (light and dark versions in style.css).
 const MEASURES = [
-  { key: "alt", label: "Altitude (m)", scale: "m", width: 2, digits: 0 },
-  { key: "vSpeed", label: "Vertical speed (km/h)", scale: "kmh", digits: 0 },
-  { key: "hSpeed", label: "Horizontal speed (km/h)", scale: "kmh", digits: 0 },
-  { key: "tSpeed", label: "Total speed (km/h)", scale: "kmh", digits: 0 },
-  { key: "glide", label: "Glide ratio", scale: "glide", digits: 2 },
+// `short` and `unit` are for the phone layout, where the pills show live values.
+  { key: "alt", label: "Altitude (m)", short: "Alt", unit: " m", scale: "m", width: 2, digits: 0 },
+  { key: "vSpeed", label: "Vertical speed (km/h)", short: "Vert", unit: "", scale: "kmh", digits: 0 },
+  { key: "hSpeed", label: "Horizontal speed (km/h)", short: "Horiz", unit: "", scale: "kmh", digits: 0 },
+  { key: "tSpeed", label: "Total speed (km/h)", short: "Total", unit: "", scale: "kmh", digits: 0 },
+  { key: "glide", label: "Glide ratio", short: "Glide", unit: "", scale: "glide", digits: 2 },
 ];
 // `color` names the measure whose colour an axis with a single measure takes.
 const AXES = [
@@ -157,6 +158,10 @@ function cssVar(name) {
 // Below this chart width (phones), axes drop their titles and use smaller text.
 const COMPACT_WIDTH = 600;
 let chartCompact = false;
+// Phone held upright gets the compact layout (keep in sync with style.css).
+const PHONE_PORTRAIT = matchMedia("(max-width: 600px) and (orientation: portrait)");
+const cursorTimeEl = document.getElementById("cursor-time");
+const pillValues = {};
 // Which measures are shown (saved in settings).
 const shown = settings.shown;
 const measureBoxes = {};
@@ -186,12 +191,13 @@ function drawChart() {
       })),
     ],
     axes: [
-      { label: "Time (s)", ...axisColors(true), ...(chartCompact ? COMPACT_AXIS : {}) },
+      // No "Time (s)" title on a phone held upright: the time is shown next to the card title.
+      { ...(PHONE_PORTRAIT.matches ? { size: 28 } : { label: "Time (s)" }), ...axisColors(true), ...(chartCompact ? COMPACT_AXIS : {}) },
       ...axes.map((a, i) => (chartCompact ? compactAxis(a, i === 0) : fullAxis(a, i === 0))),
     ],
     hooks: {
       setScale: [(u, key) => { if (key === "x") { syncInputs(u); updateMap(); } }],
-      setCursor: [(u) => { if (trackMap) trackMap.setCursor(track, u.cursor.idx); }],
+      setCursor: [(u) => { if (trackMap) trackMap.setCursor(track, u.cursor.idx); showPillValues(u.cursor.idx); }],
       drawClear: [drawScoringBand],
     },
   };
@@ -247,8 +253,26 @@ for (const m of MEASURES) {
     if (chart) rebuildChart(); // axes appear and disappear with their measures
   });
   measureBoxes[m.key] = box;
-  label.append(box, dot, m.label);
+  const long = document.createElement("span");
+  long.className = "long";
+  long.textContent = m.label;
+  const short = document.createElement("span");
+  short.className = "short";
+  short.textContent = m.short;
+  const value = document.createElement("span");
+  value.className = "value";
+  pillValues[m.key] = value;
+  label.append(box, dot, long, short, value);
   document.getElementById("measures").append(label);
+}
+
+// Phone layout: the pills and the card title stand in for the chart legend.
+function showPillValues(i) {
+  cursorTimeEl.textContent = i == null ? "" : `t = ${track.t[i].toFixed(1)} s`;
+  for (const m of MEASURES) {
+    const v = i == null ? null : track[m.key][i];
+    pillValues[m.key].textContent = v == null ? "" : ` ${v.toLocaleString("en-US", { maximumFractionDigits: m.digits, minimumFractionDigits: m.digits })}${m.unit}`;
+  }
 }
 
 // uPlot's drag-to-zoom only listens to the mouse. On touch screens, a sideways
@@ -348,6 +372,8 @@ function fmt(v, digits) {
 }
 
 function chartHeight() {
+  // Phone held upright: leave room for the map underneath.
+  if (PHONE_PORTRAIT.matches) return Math.round(Math.max(200, Math.min(320, window.innerHeight * 0.36)));
   return Math.max(300, Math.min(500, window.innerHeight - 200));
 }
 
@@ -404,6 +430,11 @@ window.addEventListener("resize", () => {
   if (!chart) return;
   if (chartEl.clientWidth < COMPACT_WIDTH !== chartCompact) rebuildChart(); // e.g. phone rotated
   else chart.setSize({ width: chartEl.clientWidth, height: chartHeight() });
+});
+
+// Switching between the phone and full layouts changes the chart's size.
+PHONE_PORTRAIT.addEventListener("change", () => {
+  if (chart) rebuildChart();
 });
 
 // Lets the app be installed and opened offline (needs https or localhost).

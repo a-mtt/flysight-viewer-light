@@ -456,3 +456,119 @@ footer {
     height: 300px;
   }
 }
+
+/* Phone held upright: a compact layout so the chart and map fit on one screen.
+   Laptops and phones turned sideways keep the full layout above.
+   Keep this media query in sync with PHONE_PORTRAIT in app.js. */
+
+.phone-only,
+.measure .short,
+.measure .value {
+  display: none;
+}
+
+@media (max-width: 600px) and (orientation: portrait) {
+  .phone-only {
+    display: inline;
+  }
+
+  .track-card .card-head .hint:not(.phone-only) {
+    display: none;
+  }
+
+  #cursor-time {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* From/To and the buttons on one row. */
+  #window {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  #window .field span {
+    display: none;
+  }
+
+  #window .field input {
+    width: 4.6em;
+    height: 32px;
+    padding: 0 6px;
+  }
+
+  #window .button {
+    height: 32px;
+    padding: 0 10px;
+  }
+
+  .to-sep {
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+
+  /* Pills on one row that scrolls sideways, with short names and live values. */
+  #measures {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin-bottom: 4px;
+    gap: 6px;
+  }
+
+  #measures::-webkit-scrollbar {
+    display: none;
+  }
+
+  .measure {
+    flex: none;
+    height: 28px;
+    padding: 0 10px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .measure .long {
+    display: none;
+  }
+
+  .measure .short,
+  .measure .value {
+    display: inline;
+  }
+
+  /* The pills show the values, so the chart's own legend is hidden. */
+  .u-legend {
+    display: none;
+  }
+
+  /* The map continues the track card instead of starting a new one. */
+  .track-card {
+    margin-bottom: 0;
+    padding-bottom: 8px;
+    border-bottom: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .map-card {
+    padding-top: 0;
+    border-top: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+
+  .map-card .card-head {
+    display: none;
+  }
+
+  #map {
+    height: 30vh;
+    height: 30svh;
+    min-height: 200px;
+  }
+
+  .map-legend {
+    margin-top: 6px;
+  }
+}

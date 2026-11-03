@@ -61,6 +61,10 @@ For example `26-08-01/17-15-09/TRACK.CSV` is a jump on 1 August 2026 at 17:15:09
 
    The scoring window is shaded in yellow on the chart.
 
+### On a phone held upright
+
+The layout gets compact so the chart and map fit on one screen: the controls and the measure pills each take one row (swipe the pills sideways to reach the rest), the pills show live values while you touch the chart, and the map sits right under it. Turn the phone sideways, or use a laptop, for the full-size layout with the complete legend.
+
 ### Privacy
 
 Your track file is read on your device and never uploaded. The map background comes from [OpenStreetMap](https://www.openstreetmap.org): to draw it, your browser downloads map images of the area you're looking at, so OpenStreetMap's servers can see roughly which area that is. The track itself is drawn on your device.

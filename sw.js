@@ -32,8 +32,11 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET" || new URL(event.request.url).origin !== location.origin) return;
+  // Pages are re-checked with the server rather than taken from the HTTP cache,
+  // so a new version (and its new ?v= links) is picked up straight away.
+  const request = event.request.mode === "navigate" ? fetch(event.request.url, { cache: "no-cache" }) : fetch(event.request);
   event.respondWith(
-    fetch(event.request)
+    request
       .then((response) => {
         const copy = response.clone();
         caches.open(CACHE).then((cache) => cache.put(event.request, copy));
