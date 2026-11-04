@@ -484,7 +484,7 @@ footer {
   #window {
     flex-wrap: nowrap;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     margin-bottom: 8px;
   }
 
@@ -493,14 +493,16 @@ footer {
   }
 
   #window .field input {
-    width: 4.6em;
+    width: 4.3em;
     height: 32px;
-    padding: 0 6px;
+    padding: 0 4px;
+    font-size: 0.85rem;
   }
 
   #window .button {
     height: 32px;
-    padding: 0 10px;
+    padding: 0 7px;
+    font-size: 0.85rem;
   }
 
   .to-sep {
@@ -571,4 +573,74 @@ footer {
   .map-legend {
     margin-top: 6px;
   }
+}
+
+/* Alarms */
+
+#alarm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.alarm-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.alarm-row input {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.95rem;
+}
+
+.alarm-row input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  max-width: 16em;
+}
+
+.alarm-row input[type="number"] {
+  width: 6em;
+  font-variant-numeric: tabular-nums;
+}
+
+.alarm-row .link {
+  font-size: 0.85rem;
+}
+
+#alarm-readout {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
+#alarm-readout p {
+  margin: 0;
+}
+
+.alarm-table {
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.alarm-table th {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-align: left;
+}
+
+.alarm-table th,
+.alarm-table td {
+  padding: 6px 16px 6px 0;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
 }

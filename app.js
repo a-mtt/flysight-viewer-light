@@ -8,6 +8,10 @@ const fromInput = document.getElementById("from");
 const toInput = document.getElementById("to");
 const resetButton = document.getElementById("reset");
 const findJumpButton = document.getElementById("find-jump");
+const entryButton = document.getElementById("entry");
+const alarmListEl = document.getElementById("alarm-list");
+const alarmReadoutEl = document.getElementById("alarm-readout");
+const addAlarmButton = document.getElementById("add-alarm");
 const groundInput = document.getElementById("ground");
 const topInput = document.getElementById("top");
 const bottomInput = document.getElementById("bottom");
@@ -23,18 +27,21 @@ let chart = null;
 let track = null;
 let score = null;
 let trackMap = null; // created on the first import, once the map card is visible
+let showAlarms = false; // alarms are on the chart only after Entry, until Jump/Reset or a new import
 
 // Settings kept on this device between visits (browser storage, never uploaded):
 //   dz      DZ elevation typed by the user, or null to use each track's estimate
 //   top     scoring window top (m)
 //   bottom  scoring window bottom (m)
 //   shown   which measures are shown on the chart
+//   alarms  [{ name, alt }] FlySight alarms, alt in m above ground
 const SETTINGS_KEY = "flysight-viewer-settings";
 const DEFAULTS = {
   dz: null,
   top: 2500,
   bottom: 1500,
   shown: { alt: true, vSpeed: true, hSpeed: true, tSpeed: false, glide: false },
+  alarms: [],
 };
 const settings = loadSettings();
 
@@ -131,6 +138,7 @@ function clearTrack() {
   chart = null;
   track = null;
   score = null;
+  showAlarms = false;
   errorEl.hidden = true;
   viewer.hidden = true;
 }
@@ -199,6 +207,7 @@ function drawChart() {
       setScale: [(u, key) => { if (key === "x") { syncInputs(u); updateMap(); } }],
       setCursor: [(u) => { if (trackMap) trackMap.setCursor(track, u.cursor.idx); showPillValues(u.cursor.idx); }],
       drawClear: [drawScoringBand],
+      draw: [drawAlarms],
     },
   };
   chart = new uPlot(opts, chartData(), chartEl);
@@ -338,6 +347,7 @@ function updateScore() {
   }
   if (chart) chart.redraw(false);
   updateMap();
+  renderAlarmReadout(); // alarm times depend on the DZ elevation and the scoring window
 }
 
 function scoringWindowChanged() {
@@ -356,7 +366,8 @@ resetSettingsButton.addEventListener("click", () => {
   try {
     localStorage.removeItem(SETTINGS_KEY);
   } catch {}
-  Object.assign(settings, DEFAULTS, { shown: settings.shown });
+  Object.assign(settings, DEFAULTS, { shown: settings.shown, alarms: [] });
+  renderAlarmList();
   Object.assign(shown, DEFAULTS.shown);
   for (const key in measureBoxes) measureBoxes[key].checked = shown[key];
   topInput.value = settings.top;
@@ -413,13 +424,174 @@ findJumpButton.addEventListener("click", () => {
     errorEl.textContent = jump.error;
     return;
   }
+  setShowAlarms(false);
   chart.setScale("x", { min: Math.max(track.t[0], jump.exit - 2), max: jump.end });
+});
+
+// Analyze entry: from exit to 10 s after entering the scoring window, with the alarms.
+entryButton.addEventListener("click", () => {
+  if (!chart) return;
+  const jump = findJump(track);
+  const error = jump.error || (score.error && `No scoring window: ${score.error}`);
+  errorEl.hidden = !error;
+  if (error) {
+    errorEl.textContent = error;
+    return;
+  }
+  setShowAlarms(true);
+  chart.setScale("x", { min: jump.exit, max: Math.min(score.start + 10, track.t[track.t.length - 1]) });
 });
 
 resetButton.addEventListener("click", () => {
   if (!chart) return;
+  setShowAlarms(false);
   chart.setScale("x", { min: track.t[0], max: track.t[track.t.length - 1] });
 });
+
+// Alarms
+
+function setShowAlarms(on) {
+  showAlarms = on;
+  renderAlarmReadout();
+  if (chart) chart.redraw(false);
+}
+
+// When each alarm went off on the current track, or [] if there's no exit.
+function currentAlarms() {
+  const jump = findJump(track);
+  return jump.error ? [] : alarmCrossings(track, jump, settings.alarms);
+}
+
+// Alarm list editor: one row per alarm with a name and an altitude.
+function renderAlarmList() {
+  alarmListEl.replaceChildren();
+  settings.alarms.forEach((alarm, i) => {
+    const row = document.createElement("div");
+    row.className = "alarm-row";
+    const name = document.createElement("input");
+    name.type = "text";
+    name.placeholder = "Name, e.g. 2800";
+    name.setAttribute("aria-label", "Alarm name");
+    name.value = alarm.name;
+    const alt = document.createElement("input");
+    alt.type = "number";
+    alt.step = "1";
+    alt.placeholder = "Altitude";
+    alt.setAttribute("aria-label", "Alarm altitude (m)");
+    alt.value = Number.isFinite(alarm.alt) ? alarm.alt : "";
+    const unit = document.createElement("span");
+    unit.className = "muted";
+    unit.textContent = "m";
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "link";
+    remove.textContent = "Remove";
+
+    const changed = () => {
+      alarm.name = name.value.trim();
+      alarm.alt = parseFloat(alt.value);
+      alarmsChanged();
+    };
+    name.addEventListener("change", changed);
+    alt.addEventListener("change", changed);
+    remove.addEventListener("click", () => {
+      settings.alarms.splice(i, 1);
+      renderAlarmList();
+      alarmsChanged();
+    });
+    row.append(name, alt, unit, remove);
+    alarmListEl.append(row);
+  });
+}
+
+function alarmsChanged() {
+  saveSettings();
+  renderAlarmReadout();
+  if (chart) chart.redraw(false);
+}
+
+addAlarmButton.addEventListener("click", () => {
+  settings.alarms.push({ name: "", alt: NaN });
+  renderAlarmList();
+  alarmListEl.lastElementChild.querySelector("input").focus();
+});
+
+// After Entry: when each alarm went off, relative to entering the scoring window.
+function renderAlarmReadout() {
+  alarmReadoutEl.replaceChildren();
+  if (!track || !settings.alarms.length) return;
+  if (!showAlarms) {
+    alarmReadoutEl.innerHTML = '<p class="muted">Press <b>Entry</b> to see when each alarm went off.</p>';
+    return;
+  }
+  const table = document.createElement("table");
+  table.className = "alarm-table";
+  table.innerHTML = "<thead><tr><th>Alarm</th><th>Altitude</th><th>Timing</th><th>Vert / horiz</th></tr></thead>";
+  const body = table.createTBody();
+  for (const a of currentAlarms()) {
+    const row = body.insertRow();
+    const cells = [a.name || "(no name)", `${a.alt} m`];
+    if (a.t == null) {
+      cells.push("Not reached", "");
+    } else {
+      cells.push(entryTiming(a.t), `${Math.round(a.vSpeed)} / ${Math.round(a.hSpeed)} km/h`);
+    }
+    for (const text of cells) row.insertCell().textContent = text;
+  }
+  alarmReadoutEl.append(table);
+}
+
+function entryTiming(t) {
+  if (!score || score.error) return `${(t - findJump(track).exit).toFixed(1)} s after exit`;
+  const d = t - score.start;
+  if (Math.abs(d) < 0.05) return "At entry";
+  return d < 0 ? `${(-d).toFixed(1)} s before entry` : `${d.toFixed(1)} s after entry`;
+}
+
+// Dashed line and name on the chart where each alarm went off (after Entry only).
+function drawAlarms(u) {
+  if (!showAlarms) return;
+  const { left, top, width, height } = u.bbox;
+  const ctx = u.ctx;
+  const pr = devicePixelRatio || 1;
+  ctx.save();
+  ctx.font = `${11 * pr}px system-ui, sans-serif`;
+  ctx.textBaseline = "top";
+  const rowEnds = []; // right edge of the last label in each row of labels
+  currentAlarms()
+    .filter((a) => a.t != null)
+    .sort((a, b) => a.t - b.t)
+    .forEach((a) => {
+      const x = Math.round(u.valToPos(a.t, "x", true));
+      if (x < left || x > left + width) return;
+      ctx.strokeStyle = cssVar("--text");
+      ctx.globalAlpha = 0.7;
+      ctx.lineWidth = pr;
+      ctx.setLineDash([4 * pr, 3 * pr]);
+      ctx.beginPath();
+      ctx.moveTo(x, top);
+      ctx.lineTo(x, top + height);
+      ctx.stroke();
+      // Label in the first row where it doesn't overlap the previous one (up to 4 rows).
+      const label = a.name || `${a.alt} m`;
+      const w = ctx.measureText(label).width + 8 * pr;
+      const lx = Math.min(x + 3 * pr, left + width - w);
+      let row = rowEnds.findIndex((end) => end + 3 * pr <= lx);
+      if (row < 0) row = rowEnds.length < 4 ? rowEnds.length : rowEnds.indexOf(Math.min(...rowEnds));
+      rowEnds[row] = lx + w;
+      const y = top + 4 * pr + row * 17 * pr;
+      ctx.globalAlpha = 1;
+      ctx.setLineDash([]);
+      ctx.fillStyle = cssVar("--card");
+      ctx.fillRect(lx, y, w, 15 * pr);
+      ctx.strokeRect(lx, y, w, 15 * pr);
+      ctx.fillStyle = cssVar("--text");
+      ctx.fillText(label, lx + 4 * pr, y + 2 * pr);
+    });
+  ctx.restore();
+}
+
+renderAlarmList();
 
 // The chart draws on a canvas, so it has to be redrawn when the system switches light/dark.
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {

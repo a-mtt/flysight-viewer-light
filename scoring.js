@@ -25,8 +25,8 @@ function scoreWindow(track, top, bottom) {
 // Also returns the lane start: in FAI wingsuit performance rules (2026, section 2.2)
 // the Validation Window, and with it the Designated Lane, starts 9 s after vertical
 // speed first reaches 10 m/s.
-// Returns { exit, end, laneStart } in track seconds (laneStart is null if the track
-// ends first), or { error }.
+// Returns { exit, iExit, end, laneStart } in track seconds (iExit is the exit's
+// sample index; laneStart is null if the track ends first), or { error }.
 const EXIT_SPEED = 36; // km/h (10 m/s)
 const LANE_DELAY = 9; // s after first reaching EXIT_SPEED
 const EXIT_ACCEL = 1; // m/s²; below this the vertical speed is changing at plane-like rates
@@ -49,7 +49,23 @@ function findJump(track) {
   const laneStart = reached + LANE_DELAY <= t[t.length - 1] ? reached + LANE_DELAY : null;
 
   const bottom = crossing(track, JUMP_BOTTOM, iExit);
-  return { exit: t[iExit], end: bottom ? bottom.t : t[t.length - 1], laneStart };
+  return { exit: t[iExit], iExit, end: bottom ? bottom.t : t[t.length - 1], laneStart };
+}
+
+// When each alarm went off: the first time after exit that the track descends
+// through the alarm's altitude (m above ground), interpolated between samples.
+// Returns [{ name, alt, t, vSpeed, hSpeed }] sorted from highest to lowest alarm,
+// with t null for alarms the track never descends through.
+function alarmCrossings(track, jump, alarms) {
+  return alarms
+    .filter((a) => Number.isFinite(a.alt))
+    .map((a) => {
+      const c = crossing(track, a.alt, jump.iExit);
+      if (!c) return { name: a.name, alt: a.alt, t: null };
+      const lerp = (arr) => arr[c.i - 1] + c.f * (arr[c.i] - arr[c.i - 1]);
+      return { name: a.name, alt: a.alt, t: c.t, vSpeed: lerp(track.vSpeed), hSpeed: lerp(track.hSpeed) };
+    })
+    .sort((a, b) => b.alt - a.alt);
 }
 
 function highestIndex(track) {
@@ -67,7 +83,7 @@ function crossing(track, alt, from) {
     if (h[i - 1] >= alt && h[i] < alt) {
       const f = (h[i - 1] - alt) / (h[i - 1] - h[i]);
       const lerp = (a) => a[i - 1] + f * (a[i] - a[i - 1]);
-      return { i, t: lerp(track.t), lat: lerp(track.lat), lon: lerp(track.lon) };
+      return { i, f, t: lerp(track.t), lat: lerp(track.lat), lon: lerp(track.lon) };
     }
   }
   return null;
@@ -88,4 +104,4 @@ function groundDistance(lat1, lon1, lat2, lon2) {
   return Math.hypot(north, east);
 }
 
-if (typeof module !== "undefined") module.exports = { scoreWindow, findJump };
+if (typeof module !== "undefined") module.exports = { scoreWindow, findJump, alarmCrossings };
