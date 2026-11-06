@@ -51,22 +51,21 @@ For example `26-08-01/17-15-09/TRACK.CSV` is a jump on 1 August 2026 at 17:15:09
 
 ## Using the app
 
-1. Tap **Import track** and pick a `TRACK.CSV` file. Importing a new track replaces the previous one.
-2. **Chart:** tap the coloured pills to show or hide each measure. Glide ratio and total speed are off by default.
-3. **Zoom:** drag sideways across the chart (mouse or finger), or type the **From** and **To** times in seconds. **Jump** zooms to the jump, from 2 s before exit down to 1000 m above the dropzone. **Entry** zooms from exit to 10 s after you enter the scoring window and shows your alarms (see [Alarms](#alarms)). **Reset** shows the whole track.
-4. **Map:** shows your ground track for the current viewing window, with markers for exit, lane start, the scoring window (yellow) and 1000 m. **Lane start** is where the FAI wingsuit performance lane begins: 9 seconds after your vertical speed first reaches 10 m/s. Hover over or touch the chart to see where you were at that moment. The map follows the viewing window, so **Jump** frames the jump.
-5. **Scoring:** set the window with **Top** and **Bottom** (metres above the dropzone, 2500 → 1500 m by default). The app finds where you descend through them after exit and shows:
-   - **Time in window** in seconds
-   - **Distance:** straight line from where you entered the window to where you left it
-   - **Horizontal speed:** distance ÷ time
-
-   The scoring window is shaded in yellow on the chart.
+1. Tap **Import track** and pick a `TRACK.CSV` file. Importing a new track replaces the previous one. The header shows the jump's date and exit time, converted from the file's UTC to your device's time zone.
+2. **Score bar:** pinned at the top so it's always visible: **Time** in the window, **Distance** and **Speed**, and under them your entry into the window: time since exit, vertical (**v**) and horizontal (**h**) speed, and glide ratio (**GR**).
+3. **Chart:** tap the coloured pills to show or hide each measure. Glide ratio and total speed are off by default.
+4. **Zoom:** drag sideways across the chart (mouse or finger), or type the **From** and **To** times in seconds. **Jump** zooms to the jump, from 2 s before exit down to 1000 m above the dropzone. **Entry** zooms from exit to 10 s after you enter the scoring window and shows your alarms (see [Alarms](#alarms)). **Reset** shows the whole track.
+5. **Map:** shows your ground track for the current viewing window, with markers for exit, lane start, the scoring window (yellow) and 1000 m. **Lane start** is where the FAI wingsuit performance lane begins: 9 seconds after your vertical speed first reaches 10 m/s. Hover over or touch the chart to see where you were at that moment. The map follows the viewing window, so **Jump** frames the jump.
+6. **Settings** (collapsed at the bottom, with a summary of what's set):
+   - **DZ elevation** and the scoring window's **Top** and **Bottom** (metres above the dropzone, 2500 → 1500 m by default). The app finds where you descend through them after exit; the window is shaded in yellow on the chart. Distance is the straight line from where you entered the window to where you left it, and speed is distance ÷ time.
+   - **Open new tracks in:** Full track, Jump, Entry, or Last used (whichever of Jump / Entry / Reset you pressed last).
+   - **Alarms**, see below.
 
 ### Alarms
 
-Add the alarms you set on your FlySight in the **Alarms** card: a name (e.g. the audio file it plays) and the altitude in metres above the dropzone, as in `Alarm_Elev` in `CONFIG.TXT`. They're saved on your device.
+Add the alarms you set on your FlySight under **Settings → Alarms**: a name (e.g. the audio file it plays) and the altitude in metres above the dropzone, as in `Alarm_Elev` in `CONFIG.TXT`. They're saved on your device.
 
-Press **Entry** to see them: a dashed line on the chart where each alarm went off (the first time after exit you descended through its altitude), and a table with each alarm's timing relative to entering the scoring window (e.g. *4.7 s before entry*) and your vertical and horizontal speed at that moment. **Jump** or **Reset** hides them again.
+Press **Entry** to see them: a dashed line on the chart where each alarm went off (the first time after exit you descended through its altitude), and an **Alarms** card under the map with each alarm's timing relative to entering the scoring window (e.g. *4.7 s before entry*) and your vertical and horizontal speed at that moment. **Jump** or **Reset** hides them again.
 
 ### On a phone held upright
 
@@ -92,10 +91,11 @@ These are remembered on your device between visits:
 
 - DZ elevation (only if you typed one)
 - Scoring window **Top** and **Bottom**
+- Which view new tracks open in
 - Which measures are shown on the chart
 - Your alarms
 
-They're stored in your browser only, never uploaded. Each device keeps its own settings; on iPhone the home-screen app and Safari also keep separate ones. **Reset saved settings** at the bottom of the page puts everything back to the defaults.
+They're stored in your browser only, never uploaded. Each device keeps its own settings; on iPhone the home-screen app and Safari also keep separate ones. **Reset saved settings** (in Settings) puts everything back to the defaults.
 
 ### How the numbers are calculated
 

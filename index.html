@@ -13,9 +13,10 @@
   <link rel="stylesheet" href="vendor/uPlot.min.css">
   <link rel="stylesheet" href="vendor/leaflet.css">
   <!-- Bump ?v= whenever style.css or a script changes, so browsers fetch the new file instead of a cached one. -->
-  <link rel="stylesheet" href="style.css?v=14">
+  <link rel="stylesheet" href="style.css?v=15">
 </head>
 <body>
+  <!-- Header and score stay pinned at the top while scrolling. -->
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand">
@@ -32,6 +33,16 @@
         Import track
         <input id="file" type="file" accept=".csv,text/csv" hidden>
       </label>
+    </div>
+
+    <div id="scorebar" class="scorebar" hidden>
+      <dl id="score" class="stats">
+        <div><dt>Time</dt><dd id="score-time"></dd></div>
+        <div><dt>Distance</dt><dd id="score-distance"></dd></div>
+        <div><dt>Speed</dt><dd id="score-speed"></dd></div>
+      </dl>
+      <p id="entry-line" class="entry-line"></p>
+      <p id="score-error" class="score-error" hidden></p>
     </div>
   </header>
 
@@ -77,10 +88,21 @@
         </div>
       </section>
 
-      <section class="card">
+      <section id="alarm-card" class="card" hidden>
         <div class="card-head">
-          <h2>Scoring</h2>
+          <h2>Alarms</h2>
         </div>
+        <div id="alarm-readout"></div>
+      </section>
+    </div>
+
+    <details id="settings" class="card settings">
+      <summary>
+        <span class="settings-title">Settings</span>
+        <span id="settings-summary" class="hint"></span>
+      </summary>
+
+      <div class="settings-body">
         <div id="scoring-window" class="controls">
           <div class="field">
             <label for="ground">DZ elevation (m above sea level)</label>
@@ -93,36 +115,36 @@
           <label class="field"><span>Top (m)</span><input id="top" type="number" step="1" value="2500"></label>
           <label class="field"><span>Bottom (m)</span><input id="bottom" type="number" step="1" value="1500"></label>
         </div>
-        <p id="score-error" class="alert" hidden></p>
-        <dl id="score" class="stats">
-          <div><dt>Time in window</dt><dd id="score-time"></dd></div>
-          <div><dt>Distance</dt><dd id="score-distance"></dd></div>
-          <div><dt>Horizontal speed</dt><dd id="score-speed"></dd></div>
-        </dl>
-      </section>
 
-      <section class="card">
-        <div class="card-head">
-          <h2>Alarms</h2>
-          <span class="hint">Shown on the chart with Entry</span>
+        <fieldset class="field open-view">
+          <legend>Open new tracks in</legend>
+          <div class="segmented">
+            <label><input type="radio" name="open-view" value="full"><span>Full track</span></label>
+            <label><input type="radio" name="open-view" value="jump"><span>Jump</span></label>
+            <label><input type="radio" name="open-view" value="entry"><span>Entry</span></label>
+            <label><input type="radio" name="open-view" value="last"><span>Last used</span></label>
+          </div>
+        </fieldset>
+
+        <div class="field">
+          <span>Alarms (m above the DZ) · shown on the chart with Entry</span>
         </div>
         <div id="alarm-list"></div>
         <button id="add-alarm" class="button secondary" type="button">Add alarm</button>
-        <div id="alarm-readout"></div>
-      </section>
-    </div>
 
-    <footer>
-      DZ elevation, scoring window, shown measures and alarms are saved on this device.
-      <button id="reset-settings" class="link" type="button">Reset saved settings</button>
-    </footer>
+        <p class="muted saved-note">
+          These settings are saved on this device.
+          <button id="reset-settings" class="link" type="button">Reset saved settings</button>
+        </p>
+      </div>
+    </details>
   </main>
 
   <script src="vendor/uPlot.iife.min.js"></script>
   <script src="vendor/leaflet.js"></script>
-  <script src="parser.js?v=14"></script>
-  <script src="scoring.js?v=14"></script>
-  <script src="map.js?v=14"></script>
-  <script src="app.js?v=14"></script>
+  <script src="parser.js?v=15"></script>
+  <script src="scoring.js?v=15"></script>
+  <script src="map.js?v=15"></script>
+  <script src="app.js?v=15"></script>
 </body>
 </html>

@@ -565,9 +565,9 @@ footer {
   }
 
   #map {
-    height: 30vh;
-    height: 30svh;
-    min-height: 200px;
+    height: 26vh;
+    height: 26svh;
+    min-height: 180px;
   }
 
   .map-legend {
@@ -643,4 +643,195 @@ footer {
   padding: 6px 16px 6px 0;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
+}
+
+/* Pinned header with the score */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000; /* above the map's panes */
+}
+
+.scorebar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 16px 12px;
+}
+
+.scorebar .stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 10rem));
+  gap: 8px;
+  flex: none;
+}
+
+.scorebar .stats div {
+  display: block;
+  padding: 8px 12px;
+}
+
+.scorebar .stats dd {
+  margin: 2px 0 0;
+  font-size: 1.4rem;
+}
+
+.scorebar .stats small {
+  color: var(--muted);
+  font-size: 0.6em;
+  font-weight: 500;
+}
+
+.entry-line,
+.score-error {
+  margin: 0;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.entry-line {
+  color: var(--muted);
+}
+
+.entry-line b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.score-error {
+  color: var(--danger);
+}
+
+/* Collapsible settings */
+
+.settings summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.settings summary::-webkit-details-marker {
+  display: none;
+}
+
+.settings summary::after {
+  content: "▾";
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.settings[open] summary::after {
+  content: "▴";
+}
+
+.settings-title {
+  font-weight: 600;
+}
+
+.settings-body {
+  margin-top: 16px;
+}
+
+.open-view {
+  margin: 0 0 16px;
+  padding: 0;
+  border: 0;
+}
+
+.open-view legend {
+  padding: 0;
+  margin-bottom: 4px;
+}
+
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.segmented label {
+  cursor: pointer;
+}
+
+.segmented input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.segmented span {
+  display: block;
+  padding: 7px 12px;
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.segmented label + label span {
+  border-left: 1px solid var(--border);
+}
+
+.segmented input:checked + span {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.segmented input:focus-visible + span {
+  outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  outline-offset: -2px;
+}
+
+.saved-note {
+  margin: 16px 0 0;
+}
+
+@media (max-width: 600px) and (orientation: portrait) {
+  .topbar-inner {
+    min-height: 52px;
+  }
+
+  h1 {
+    font-size: 1rem;
+  }
+
+  .topbar .button.primary {
+    height: 34px;
+    padding: 0 12px;
+  }
+
+  .scorebar {
+    gap: 6px;
+    padding: 0 12px 8px;
+  }
+
+  .scorebar .stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    width: 100%;
+  }
+
+  .scorebar .stats div {
+    padding: 5px 8px;
+  }
+
+  .scorebar .stats dt {
+    font-size: 0.7rem;
+  }
+
+  .scorebar .stats dd {
+    font-size: 1.1rem;
+  }
+
+  .entry-line,
+  .score-error {
+    font-size: 0.78rem;
+  }
 }

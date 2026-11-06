@@ -1,5 +1,6 @@
 // Parses a FlySight 1 or FlySight 2 track CSV into arrays for charting.
-// Returns { t, hMSL, ground, lat, lon, vSpeed, hSpeed, tSpeed, glide } where:
+// Returns { start, t, hMSL, ground, lat, lon, vSpeed, hSpeed, tSpeed, glide } where:
+//   start  time of the first sample (ms since 1970, UTC as in the file)
 //   t      seconds since the first sample
 //   hMSL   metres above mean sea level, as recorded
 //   ground estimated ground elevation in metres above sea level
@@ -91,6 +92,7 @@ function parseFlySight(text) {
   if (ground === Infinity) ground = Math.min(...hMSL);
 
   return {
+    start: ms[0],
     t: ms.map((m) => (m - ms[0]) / 1000),
     hMSL,
     ground: Math.round(ground),

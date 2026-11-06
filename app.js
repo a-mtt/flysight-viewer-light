@@ -12,6 +12,11 @@ const entryButton = document.getElementById("entry");
 const alarmListEl = document.getElementById("alarm-list");
 const alarmReadoutEl = document.getElementById("alarm-readout");
 const addAlarmButton = document.getElementById("add-alarm");
+const scorebarEl = document.getElementById("scorebar");
+const entryLineEl = document.getElementById("entry-line");
+const alarmCardEl = document.getElementById("alarm-card");
+const settingsSummaryEl = document.getElementById("settings-summary");
+const openViewInputs = document.querySelectorAll('input[name="open-view"]');
 const groundInput = document.getElementById("ground");
 const topInput = document.getElementById("top");
 const bottomInput = document.getElementById("bottom");
@@ -35,6 +40,7 @@ let showAlarms = false; // alarms are on the chart only after Entry, until Jump/
 //   bottom  scoring window bottom (m)
 //   shown   which measures are shown on the chart
 //   alarms  [{ name, alt }] FlySight alarms, alt in m above ground
+//   openView  view for new tracks: "full", "jump", "entry" or "last" (lastView)
 const SETTINGS_KEY = "flysight-viewer-settings";
 const DEFAULTS = {
   dz: null,
@@ -42,6 +48,8 @@ const DEFAULTS = {
   bottom: 1500,
   shown: { alt: true, vSpeed: true, hSpeed: true, tSpeed: false, glide: false },
   alarms: [],
+  openView: "full",
+  lastView: "full",
 };
 const settings = loadSettings();
 
@@ -57,6 +65,7 @@ function saveSettings() {
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   } catch {} // e.g. private browsing: settings just won't be remembered
+  updateSettingsSummary();
 }
 
 topInput.value = settings.top;
@@ -69,7 +78,7 @@ fileInput.addEventListener("change", async () => {
 
   // A new import always clears the previous track.
   clearTrack();
-  filenameEl.textContent = file.name;
+  filenameEl.textContent = file.name; // the jump's date is added once the track is read
   try {
     track = parseFlySight(await file.text());
   } catch (err) {
@@ -85,7 +94,19 @@ fileInput.addEventListener("change", async () => {
   setGround();
   updateScore();
   drawChart();
+  filenameEl.textContent = `${jumpDate()} · ${file.name}`;
+  showView(settings.openView === "last" ? settings.lastView : settings.openView, { quiet: true });
 });
+
+// Date and time of the exit (or of the first sample), in this device's time zone.
+// The file is in UTC; the browser converts using the system's time zone setting.
+function jumpDate() {
+  const jump = findJump(track);
+  const at = new Date(track.start + (jump.error ? 0 : jump.exit) * 1000);
+  const date = at.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  const time = at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZoneName: "short" });
+  return `${date} · ${time}`;
+}
 
 // Redraws the map for the current viewing window, at most once per frame.
 let mapUpdatePending = false;
@@ -141,6 +162,7 @@ function clearTrack() {
   showAlarms = false;
   errorEl.hidden = true;
   viewer.hidden = true;
+  scorebarEl.hidden = true;
 }
 
 // Measures that can be shown on the chart, in legend order.
@@ -338,16 +360,44 @@ function updateScore() {
   score = scoreWindow(track, parseFloat(topInput.value), parseFloat(bottomInput.value));
   scoreErrorEl.hidden = !score.error;
   scoreEl.hidden = !!score.error;
+  scorebarEl.hidden = false;
+  entryLineEl.hidden = !!score.error;
   if (score.error) {
     scoreErrorEl.textContent = score.error;
   } else {
     document.getElementById("score-time").textContent = `${score.time.toFixed(1)} s`;
     document.getElementById("score-distance").textContent = `${score.distance.toFixed(0)} m`;
-    document.getElementById("score-speed").textContent = `${score.speed.toFixed(1)} km/h`;
+    document.getElementById("score-speed").innerHTML = `${score.speed.toFixed(1)} <small>km/h</small>`;
+    entryLineEl.innerHTML = entrySummary();
   }
+  updateSettingsSummary();
   if (chart) chart.redraw(false);
   updateMap();
   renderAlarmReadout(); // alarm times depend on the DZ elevation and the scoring window
+}
+
+// One line about entering the scoring window: time since exit, speeds and glide ratio.
+function entrySummary() {
+  const at = (key) => valueAt(track, key, score.start);
+  const v = at("vSpeed");
+  const h = at("hSpeed");
+  const jump = findJump(track);
+  const fromExit = jump.error ? "" : `<b>${(score.start - jump.exit).toFixed(1)} s</b> after exit · `;
+  return `Entry ${fromExit}v <b>${Math.round(v)}</b> · h <b>${Math.round(h)}</b> km/h · GR <b>${(h / v).toFixed(2)}</b>`;
+}
+
+// Value of a measure at time t (track seconds), interpolated between samples.
+function valueAt(track, key, t) {
+  const i = Math.max(1, track.t.findIndex((x) => x >= t));
+  const f = (t - track.t[i - 1]) / (track.t[i] - track.t[i - 1]);
+  return track[key][i - 1] + f * (track[key][i] - track[key][i - 1]);
+}
+
+// Collapsed Settings line, e.g. "DZ 386 m · 2500 → 1500 m · 6 alarms".
+function updateSettingsSummary() {
+  const dz = settings.dz != null ? `DZ ${settings.dz} m` : track ? `DZ ${track.ground} m (estimate)` : "DZ from track";
+  const n = settings.alarms.length;
+  settingsSummaryEl.textContent = `${dz} · ${settings.top} → ${settings.bottom} m · ${n} alarm${n === 1 ? "" : "s"}`;
 }
 
 function scoringWindowChanged() {
@@ -368,6 +418,8 @@ resetSettingsButton.addEventListener("click", () => {
   } catch {}
   Object.assign(settings, DEFAULTS, { shown: settings.shown, alarms: [] });
   renderAlarmList();
+  for (const input of openViewInputs) input.checked = input.value === settings.openView;
+  updateSettingsSummary();
   Object.assign(shown, DEFAULTS.shown);
   for (const key in measureBoxes) measureBoxes[key].checked = shown[key];
   topInput.value = settings.top;
@@ -384,7 +436,7 @@ function fmt(v, digits) {
 
 function chartHeight() {
   // Phone held upright: leave room for the map underneath.
-  if (PHONE_PORTRAIT.matches) return Math.round(Math.max(200, Math.min(320, window.innerHeight * 0.36)));
+  if (PHONE_PORTRAIT.matches) return Math.round(Math.max(200, Math.min(300, window.innerHeight * 0.32)));
   return Math.max(300, Math.min(500, window.innerHeight - 200));
 }
 
@@ -415,38 +467,48 @@ function applyInputs() {
 fromInput.addEventListener("change", applyInputs);
 toInput.addEventListener("change", applyInputs);
 
-// Zooms to the jump: from 2 s before exit to 1000 m above ground.
-findJumpButton.addEventListener("click", () => {
+// Views:
+//   "full"   the whole track
+//   "jump"   2 s before exit to 1000 m above ground
+//   "entry"  exit to 10 s after entering the scoring window, with the alarms
+// quiet: when opening a new track, fall back to the full track without an error message.
+function showView(view, { quiet = false } = {}) {
   if (!chart) return;
-  const jump = findJump(track);
-  errorEl.hidden = !jump.error;
-  if (jump.error) {
-    errorEl.textContent = jump.error;
-    return;
+  const end = track.t[track.t.length - 1];
+  let range = { min: track.t[0], max: end };
+  let error = null;
+  if (view === "jump" || view === "entry") {
+    const jump = findJump(track);
+    error = jump.error || (view === "entry" && score.error && `No scoring window: ${score.error}`);
+    if (!error && view === "jump") range = { min: Math.max(track.t[0], jump.exit - 2), max: jump.end };
+    if (!error && view === "entry") range = { min: jump.exit, max: Math.min(score.start + 10, end) };
   }
-  setShowAlarms(false);
-  chart.setScale("x", { min: Math.max(track.t[0], jump.exit - 2), max: jump.end });
-});
-
-// Analyze entry: from exit to 10 s after entering the scoring window, with the alarms.
-entryButton.addEventListener("click", () => {
-  if (!chart) return;
-  const jump = findJump(track);
-  const error = jump.error || (score.error && `No scoring window: ${score.error}`);
-  errorEl.hidden = !error;
+  errorEl.hidden = !error || quiet;
   if (error) {
     errorEl.textContent = error;
-    return;
+    if (!quiet) return;
+    view = "full";
   }
-  setShowAlarms(true);
-  chart.setScale("x", { min: jump.exit, max: Math.min(score.start + 10, track.t[track.t.length - 1]) });
-});
+  setShowAlarms(view === "entry");
+  chart.setScale("x", range);
+}
 
-resetButton.addEventListener("click", () => {
-  if (!chart) return;
-  setShowAlarms(false);
-  chart.setScale("x", { min: track.t[0], max: track.t[track.t.length - 1] });
-});
+// The buttons also set the view that "Last used" opens new tracks in.
+for (const [button, view] of [[findJumpButton, "jump"], [entryButton, "entry"], [resetButton, "full"]]) {
+  button.addEventListener("click", () => {
+    showView(view);
+    settings.lastView = view;
+    saveSettings();
+  });
+}
+
+for (const input of openViewInputs) {
+  input.checked = input.value === settings.openView;
+  input.addEventListener("change", () => {
+    settings.openView = input.value;
+    saveSettings();
+  });
+}
 
 // Alarms
 
@@ -506,6 +568,7 @@ function renderAlarmList() {
 
 function alarmsChanged() {
   saveSettings();
+  updateSettingsSummary();
   renderAlarmReadout();
   if (chart) chart.redraw(false);
 }
@@ -519,11 +582,8 @@ addAlarmButton.addEventListener("click", () => {
 // After Entry: when each alarm went off, relative to entering the scoring window.
 function renderAlarmReadout() {
   alarmReadoutEl.replaceChildren();
-  if (!track || !settings.alarms.length) return;
-  if (!showAlarms) {
-    alarmReadoutEl.innerHTML = '<p class="muted">Press <b>Entry</b> to see when each alarm went off.</p>';
-    return;
-  }
+  alarmCardEl.hidden = !(track && showAlarms && settings.alarms.length);
+  if (alarmCardEl.hidden) return;
   const table = document.createElement("table");
   table.className = "alarm-table";
   table.innerHTML = "<thead><tr><th>Alarm</th><th>Altitude</th><th>Timing</th><th>Vert / horiz</th></tr></thead>";
@@ -592,6 +652,7 @@ function drawAlarms(u) {
 }
 
 renderAlarmList();
+updateSettingsSummary();
 
 // The chart draws on a canvas, so it has to be redrawn when the system switches light/dark.
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
